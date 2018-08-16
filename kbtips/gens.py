@@ -168,17 +168,81 @@ def _gen_def_methods(trans_def):
     return PROS
 
 
-def gen_defs(def_file_path: str,
-             cl_imps: str=None, cl_p: str=None,
-             b_imps: str=None, b_p: str=None,
-             c_imps: str=None, c_p: str=None):
+def _format_def(x_props, x_methods, cls_name, imps: str=None):
+    file_template = """# coding: utf-8{imports}   
+
+{codes}
+ """
+    def _gen_imports():
+        if imps:
+            return imps if imps.startswith('\n') else '\n{}'.format(imps)
+        return '\n'
+
+    imps_str = _gen_imports()
+    
+    cls_str = _format_def_cls(x_props, x_methods, cls_name)
+
+    o_str = file_template.format(imports=imps_str, codes=cls_str) 
+
+    return o_str
+
+
+def _format_def_cls(x_props, x_methods, cls_name):
+    cls_template = """
+class {cls_name}(object):
+    '''Auto Genrated, Please don't modify manully'''
+
+    def __init__(self, *args, **kwargs):
+{props}
+
+{methods}
+"""
+    props = '        ...'
+    if x_props:
+        props = '\n'.join(['        self.{} : {} = {}'.format(
+            k, v['type'], v['default'] if v['default'] is not None else '...')
+                           for k, v in x_props.items()])
+
+    methods = ''
+    if x_methods:
+        methods = '\n'.join(
+            ['    def {}({}): ...'.format(k, ', '.join(v['args']))
+             for k, v in x_methods.items()])
+
+    return cls_template.format(
+        cls_name=cls_name, props=props, methods=methods)
+
+
+def gen_defs(
+        def_file_path: str,
+        cl_imps: str=None, cl_p: str=None, cl_cls: str=None,
+        b_imps: str=None, b_p: str=None, b_cls: str=None,
+        c_imps: str=None, c_p: str=None, c_cls: str=None):
+
+    def _filter(_type):
+        if _type == M_BASE:
+            return b_imps, b_p, b_cls
+        elif _type == M_CELL:
+            return c_imps, c_p, c_cls
+        elif _type == M_CLIENT:
+            return cl_imps, cl_p, cl_cls
+        else:
+            raise TypeError('error handled type, got {}'.format(_type))
+    
+    import os.path
+
     transed_def = _defhlr.get_merged_def(def_file_path)
     
     props = _gen_def_properties(transed_def)
-    methods = _gen_def_properties(transed_def)
+    methods = _gen_def_methods(transed_def)
 
-    file_template = """# coding: utf-8{imports}
-{codes}
-"""
+    return_dic = {}
     for _t in (M_BASE, M_CELL, M_CLIENT):
-        pass
+        x_imps, _, x_clsname = _filter(_t)
+
+        if not x_clsname:
+            x_clsname = os.path.basename(def_file_path).split('.')[0]
+
+        return_dic[_t] = _format_def(props[_t], methods[_t], x_clsname, x_imps)
+
+    return return_dic
