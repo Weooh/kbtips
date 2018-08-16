@@ -106,3 +106,79 @@ import typing
            _fd.write(file_str)
 
     return file_str
+
+
+P_CLIENT = M_CLIENT = 'cl'
+P_CELL = M_CELL = 'c'
+P_BASE = M_BASE = 'b'
+
+PROPERTIES_FLAGS_MAPPING = {
+    'BASE': (P_BASE, ),
+    'BASE_AND_CLIENT': (P_BASE, P_CLIENT),
+    'CELL_PRIVATE': (P_CELL, ),
+    'CELL_PUBLIC': (P_CELL, ),
+    'CELL_PUBLIC_AND_OWN': (P_CELL, P_CLIENT),
+    'ALL_CLIENTS': (P_CLIENT, ),
+    'OWN_CLIENT': (P_CLIENT, ),
+    'OTHER_CLIENTS': (P_CELL, P_CLIENT),
+}
+
+METHODS_TAG_MAPPING = {
+    'clientmethods': M_CLIENT,
+    'basemethods': M_BASE,
+    'cellmethods': M_CELL,
+}
+
+
+def _gen_def_properties(trans_def):
+    PROS = {P_BASE: {}, P_CELL: {}, P_CLIENT: {}}
+
+    for p_name, p_prm in trans_def['properties'].items():
+        _prop = {'name': p_name, 'type': p_prm['type'],
+                 'default': p_prm.get('default'), 'flags': p_prm['flags']}
+        
+        _type = PROPERTIES_FLAGS_MAPPING[p_prm['flags']]
+
+        if P_BASE in _type:
+            PROS[P_BASE][p_name] = _prop
+
+        if P_CELL in _type:
+            PROS[P_CELL][p_name] = _prop
+
+        if P_CLIENT in _type:
+            PROS[P_CLIENT][p_name] = _prop
+
+    return PROS
+
+
+def _gen_def_methods(trans_def):
+    PROS = {M_BASE: {}, M_CELL: {}, M_CLIENT: {}}
+
+    for mt_name, mt_type in METHODS_TAG_MAPPING.items(): 
+        for m_name, m_prm in trans_def[mt_name].items():
+            _prop = {'args': m_prm['args'], 'name': m_name}
+
+            if mt_type == M_CLIENT:
+                PROS[M_CLIENT][m_name] = _prop
+            elif mt_type == M_CELL:
+                PROS[M_CELL][m_name] = _prop
+            elif mt_type == M_BASE:
+                PROS[M_BASE][m_name] = _prop
+
+    return PROS
+
+
+def gen_defs(def_file_path: str,
+             cl_imps: str=None, cl_p: str=None,
+             b_imps: str=None, b_p: str=None,
+             c_imps: str=None, c_p: str=None):
+    transed_def = _defhlr.get_merged_def(def_file_path)
+    
+    props = _gen_def_properties(transed_def)
+    methods = _gen_def_properties(transed_def)
+
+    file_template = """# coding: utf-8{imports}
+{codes}
+"""
+    for _t in (M_BASE, M_CELL, M_CLIENT):
+        pass
