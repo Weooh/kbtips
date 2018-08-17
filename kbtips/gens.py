@@ -190,7 +190,7 @@ def _format_def(x_props, x_methods, cls_name, imps: str=None):
 def _format_def_cls(x_props, x_methods, cls_name):
     cls_template = """
 class {cls_name}(object):
-    '''Auto Genrated, Please don't modify manully'''
+    '''Auto Generated, Please don't modify manully'''
 
     def __init__(self, *args, **kwargs):
 {props}
@@ -206,7 +206,9 @@ class {cls_name}(object):
     methods = ''
     if x_methods:
         methods = '\n'.join(
-            ['    def {}({}): ...'.format(k, ', '.join(v['args']))
+            ['    def {}(self, {}): ...'.format(
+                k, ', '.join(('arg{0}: {1}'.format(idx, arg)
+                              for idx, arg in enumerate(v['args']))))
              for k, v in x_methods.items()])
 
     return cls_template.format(
@@ -242,7 +244,23 @@ def gen_defs(
 
         if not x_clsname:
             x_clsname = os.path.basename(def_file_path).split('.')[0]
+        
+        if not props[_t] and not methods[_t]:
+            continue
 
         return_dic[_t] = _format_def(props[_t], methods[_t], x_clsname, x_imps)
+
+    # write to file
+    for _t in (M_BASE, M_CELL, M_CLIENT):
+        _, x_outpath, _  = _filter(_t)
+
+        if not x_outpath:
+            continue
+        
+        if _t not in return_dic:
+            continue
+
+        with open(x_outpath, 'w+') as fd:
+            fd.write(return_dic[_t])
 
     return return_dic
