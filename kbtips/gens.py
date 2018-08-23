@@ -215,7 +215,23 @@ class {cls_name}(object):
         cls_name=cls_name, props=props, methods=methods)
 
 
-def gen_defs(
+def gen_defs(def_file_path):
+    transed_def = _defhlr.get_merged_def(def_file_path)
+    
+    props = _gen_def_properties(transed_def)
+    methods = _gen_def_methods(transed_def)
+
+    return_dic = {}
+    for _t in (M_BASE, M_CELL, M_CLIENT):
+        if not props[_t] and not methods[_t]:
+            continue
+
+        return_dic[_t] = (props[_t], methods[_t])
+
+    return return_dic
+
+
+def gen_defs_file(
         def_file_path: str,
         cl_imps: str=None, cl_p: str=None, cl_cls: str=None,
         b_imps: str=None, b_p: str=None, b_cls: str=None,
@@ -233,22 +249,14 @@ def gen_defs(
     
     import os.path
 
-    transed_def = _defhlr.get_merged_def(def_file_path)
-    
-    props = _gen_def_properties(transed_def)
-    methods = _gen_def_methods(transed_def)
-
     return_dic = {}
     for _t in (M_BASE, M_CELL, M_CLIENT):
         x_imps, _, x_clsname = _filter(_t)
 
         if not x_clsname:
             x_clsname = os.path.basename(def_file_path).split('.')[0]
-        
-        if not props[_t] and not methods[_t]:
-            continue
-
-        return_dic[_t] = _format_def(props[_t], methods[_t], x_clsname, x_imps)
+        _p, _m = gen_defs(def_file_path)
+        return_dic[_t] = _format_def(_p, _m, x_clsname, x_imps)
 
     # write to file
     for _t in (M_BASE, M_CELL, M_CLIENT):

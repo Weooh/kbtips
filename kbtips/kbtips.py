@@ -50,7 +50,7 @@ def main():
         defs_name = os.path.basename(defs_fp).split('.')[0] + '.pyi'
         print('[-] Generate def file located at: "{}" ...'.format(defs_fp))
         try:
-            gens.gen_defs(
+            gens.gen_defs_file(
                 defs_fp,
                 c_p=os.path.join(kbe_cell, defs_name),
                 c_imps=imports,
